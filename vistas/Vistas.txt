@@ -1,0 +1,50 @@
+---Crear una vista en northwind
+
+CREATE VIEW VIEW_VENTAS
+AS
+Select c.CustomerID, c.CompanyName, c.Country, o.OrderID
+, o.OrderDate, cat.CategoryName, p.ProductName, d.UnitPrice, d.Quantity
+, d.UnitPrice * d.Quantity as TotalPartial
+from customers as c 
+inner join orders as o on c.CustomerID=o.CustomerID
+inner join [order details] as d on d.OrderID=o.OrderID
+inner join products as p on p.ProductID=d.ProductID
+inner join Categories as cat on p.CategoryID=cat.CategoryID
+GO
+
+---Usar la vista
+SELECT * FROM VIEW_VENTAS
+GO
+
+--modificar vista(se agregan alias)
+ALTER VIEW VIEW_VENTAS (CODIGOCLIENTE, COMPAÑIA, PAIS, NUMEROORDEN, FECHA
+, CATEGORIA, PRODUCTO, PRECIO, CANTIDAD, TOTAL)
+AS
+Select c.CustomerID, c.CompanyName, c.Country, o.OrderID
+, o.OrderDate, cat.CategoryName, p.ProductName, d.UnitPrice, d.Quantity
+, d.UnitPrice * d.Quantity as TotalPartial
+from customers as c 
+inner join orders as o on c.CustomerID=o.CustomerID
+inner join [order details] as d on d.OrderID=o.OrderID
+inner join products as p on p.ProductID=d.ProductID
+inner join Categories as cat on p.CategoryID=cat.CategoryID
+GO
+
+--para hacer un 'order by' se debe poner 'select top'
+ALTER VIEW VIEW_VENTAS (CODIGOCLIENTE, COMPAÑIA, PAIS, NUMEROORDEN, FECHA
+, CATEGORIA, PRODUCTO, PRECIO, CANTIDAD, TOTAL)
+AS
+Select TOP 10 c.CustomerID, c.CompanyName, c.Country, o.OrderID
+, o.OrderDate, cat.CategoryName, p.ProductName, d.UnitPrice, d.Quantity
+, d.UnitPrice * d.Quantity as TotalPartial
+from customers as c 
+inner join orders as o on c.CustomerID=o.CustomerID
+inner join [order details] as d on d.OrderID=o.OrderID
+inner join products as p on p.ProductID=d.ProductID
+inner join Categories as cat on p.CategoryID=cat.CategoryID
+order by c.CompanyName
+GO
+
+---VER EL SCRIPT QUE ORIGINA UNA VISTA
+SP_HELPTEXT select * from VIEW_VENTAS
+

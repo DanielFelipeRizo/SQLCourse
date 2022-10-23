@@ -1,0 +1,33 @@
+use Northwind
+--#####transacciones automaticas: son instrucciones que se ejecutan de manera individual
+--un insert es un ejemplo de transacciones automaticas.
+insert into Customers(CustomerID,CompanyName,ContactName,ContactTitle,Country)
+values ('2323','fg','Victor','Ing', 'Col')
+go
+
+select * from Customers where CustomerID='2323'
+--######transacciones explicitas:
+begin transaction 
+	delete from Customers where CustomerID='2323'
+--se confirman las transacciones con 'commit'
+commit transaction
+--se pueden desechar con 'rollback'
+rollback transaction
+
+--ver bloqueos
+--bloqueos son conexiones establecidas por usuarios hacia objetos de la BD
+--o hacia la misma BD
+execute sp_lock
+
+--####Transacciones implicitas:
+--no necesitan del 'begin transaction'
+--con 'set implicit_transactions on' cualquier intruccion como insert,update o delete
+--van a levantar una transaccion(begin transaction)
+set implicit_transactions on
+--no se debe olvidar que el begin trnsacion esta implicito o activo despues de 
+--establecer 'set implicit_transactions on' y  se debe terminar la instruccion 
+--con un 'commit transaction' o 'rollback transaction'.
+
+
+
+--###Aislamiento

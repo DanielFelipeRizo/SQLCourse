@@ -1,0 +1,73 @@
+--tablas en memoria
+--van a ser guardadas en la memoria de nuestro servidor
+--cargan a memoria ram nuestro conjunto de datos
+--se puede acceder a ellas como si fuera una tabla normal.
+
+alter database Ciudadano
+add filegroup CIUDADANOINMEMORY_MOD
+contains MEMORY_OPTIMIZED_DATA
+GO
+--agregar al filegroup 'CIUDADANOINMEMORY_MOD' el archivo asociado.
+alter database ciudadano
+add file(name='CIUDADANOINMEMORY', filename='H:\DATA\CIUDADANOINMEMORY')
+TO FILEGROUP CIUDADANOINMEMORY_MOD
+GO
+
+SELECT top 100 * FROM CIUDADANO
+select COUNT (*) from Ciudadano
+
+create table DiskBasedCiudadanoTable
+(
+CODIGO INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+NOM1 NCHAR(150) NULL,
+NOM2 NCHAR(150) NULL,
+APE1 NCHAR(200) NULL,
+APE2 NCHAR(200) NULL
+)
+--crear una tabla en memoria
+--no puede tener indice clousteriado porque no tiene espacio en disco fisicamente
+create table MemoryOptimizedCiudadanoTable
+(
+CODIGO INT IDENTITY(1,1) NOT NULL PRIMARY KEY nonclustered hash with(bucket_count=50000),
+NOM1 NCHAR(150) NULL,
+NOM2 NCHAR(150) NULL,
+APE1 NCHAR(200) NULL,
+APE2 NCHAR(200) NULL
+) with (memory_optimized=on, durability=schema_and_data)
+
+--probar la velocidad de incersion en las dos tablas
+insert into DiskBasedCiudadanoTable (NOM1,NOM2,APE1,APE2)
+select top 500000 NOM1,NOM2,APE1,APE2 from Ciudadano
+
+insert into MemoryOptimizedCiudadanoTable(NOM1,NOM2,APE1,APE2)
+select top 500000 NOM1,NOM2,APE1,APE2 from Ciudadano
+
+select NOM1,NOM2,APE1,APE2 from MemoryOptimizedCiudadanoTable
+where APE1='CARDENAS'
+--agregar indice a tabla existente
+alter table MemoryOptimizedCiudadanoTable
+add index IDX_NOMBRE(NOM1,NOM2)
+
+--crear indice para tablas en memoria de indice tipo 'hash'
+alter table MemoryOptimizedCiudadanoTable
+add index IDX_APELLIDOS HASH(APE1) WITH (BUCKET_COUNT=9310)
+--saber cuantos buckets poner
+SELECT DISTINCT APE1 FROM MemoryOptimizedCiudadanoTable
+
+--para las tablas en memoria se tienen procedimientos almacenados compilados de forma nativa
+--permiten una ejecucion mas eficaz
+--estos se compilan cuando se estan creando
+
+create procedure INSERT_TABLAMEMORIA(@NOM1 VARCHAR(150) ,@NOM2 VARCHAR(150),
+@APE1 VARCHAR(150),@APE2 VARCHAR(150))
+WITH NATIVE_COMPILATION, SCHEMABINDING
+--SHEMABINDING se enlaza a el esquema lo que no permite anular tablas
+--a las que hace referencia el procedimiento
+as 
+begin atomic with(transaction isolation level=snapshot, language='ENGLISH')
+	INSERT INTO dbo.MemoryOptimizedCiudadanoTable(NOM1,NOM2,APE1,APE2)
+	VALUES (@NOM1,@NOM2,@APE1,@APE2)
+end
+
+--probar sp
+exec INSERT_TABLAMEMORIA 'jose','jose','perez','perez'

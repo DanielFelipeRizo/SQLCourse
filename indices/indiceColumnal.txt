@@ -1,0 +1,24 @@
+--crear indice columnal
+create clustered columnstore index CL_ciudadano
+on ciudadano;
+
+--crear indice columnal y borrar si ya existen indices
+create clustered columnstore index CL_ciudadano
+on ciudadano
+with (drop_existing=on);
+
+--crear indice columnal y borrar si ya existen indices 
+y asignar el numero de procesadores que se van a usar
+create clustered columnstore index CL_ciudadano
+on ciudadano
+with (drop_existing=on, maxdop=2);
+
+
+--eliminar indices de la BD
+
+drop index cl_ciudadano
+on ciudadano
+
+--ver indices creados
+
+sp_helpindex ciudadano

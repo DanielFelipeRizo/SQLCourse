@@ -1,0 +1,191 @@
+/*Triggers DML
+Hay dos tipos de trigger: After   e  instead of
+-After: ocurren luego de una acción de Insert, update, delete
+-Instead off:  Cancela la accion desencadenadora y puede realizar otra acción.
+--osea que si fue llamada por un insert, update o delete cancele esa accion y podemos definir otro camino.
+*/
+
+--TRIGGERS DE TIPO AFTER: ##########################################################
+--Crear una tabla a
+Create table HistorialBorrado
+(codigo int identity(1,1) primary key
+,fecha date
+,descripcion varchar(100)
+, usuario varchar(100)
+)
+go
+--Registrar la eliminación de datos(clientes) en la tabla customers y cargarla a HistorialBorrado
+Create trigger Tr_deleteCustomers
+on customers 
+after Delete
+as
+Begin
+Insert into HistorialBorrado (fecha, descripcion, usuario ) values (getdate()
+, 'Se elimino un cliente ', user )
+--'getdate()'obtiene la fecha en tiempo real.
+--'user' obtiene el usuario que realiza la accion
+End
+
+--ver triggers
+sp_helptrigger Customers
+go
+--probar el trigger
+Delete customers where customerid='ABC'
+select * from HistorialBorrado
+
+--eliminar trigger
+drop trigger Tr_deleteCustomers
+go
+
+--sql crea una tabla termporal de las filas que se borran, esta tabla se llama 'Deleted' y se pueden acceder desde un trigger.
+--sql crea una tabla termporal de las filas que se insertan, esta tabla se llama 'Inserted' y se pueden acceder desde un trigger.
+--para el update se accede a las dos tablas 'Deleted' e 'Inserted'.
+
+--crear una tabla 'deletecustomers' a partir de tabla 'customers'
+select * 
+into deletecustomers
+from Customers
+
+--eliminar los datos
+delete deletecustomers
+
+--se llena la tabla 'deletecustomers' con los datos borrados de Customers
+--a partir de la tabla temporal 'Deleted'
+create trigger TR_borradoCliente
+on customers
+after delete 
+as
+insert into deletecustomers select * from deleted;
+
+--se llena deletecustomers con los datos de la consulta (select * from deleted)
+go
+
+--consultemos la tabla deletecustomers
+select * from deletecustomers
+--eliminar un cliente
+delete from Customers where CustomerID='HANAR'
+
+--actualizar el precio del producto al insertar un detalle de orden
+select * from OrderDetails
+select * from Products 
+
+create trigger Tr_InsertDetail
+on OrderDetails
+for insert 
+as 
+update d set d.unitprice=p.unitprice
+from OrderDetails as d inner join inserted as i on i.OrderID=d.OrderID
+and i.ProductID=d.ProductID
+inner join Products as p on p.ProductID=i.ProductID
+go
+--probar el trigger haciendo una insercion en 'orderDetails' 
+insert into OrderDetails(OrderID, ProductID, UnitPrice, Quantity,Discount)
+values(10248, 32, 0, 20,0)
+
+delete from OrderDetails where OrderID=10248 and ProductID=32
+
+--crear un trigger que descuente de la tabla 'products' la columna 'unitsInStock'
+--cuando se agrega a la tabla 'OrderDetails'
+ create trigger DEBITAR_INVENTARIO
+ ON OrderDetails
+ for insert 
+ AS
+ update P set P.UnitsInStock= P.UnitsInStock - D.Quantity
+ from Products as P inner join INSERTED as D on D.ProductID = P.ProductID
+ go
+ --probar el trigger haciendo una insercion en 'orderDetails' 
+insert into OrderDetails(OrderID, ProductID, UnitPrice, Quantity,Discount)
+values(10248, 32, 0, 5,0)
+
+--crear un trigger que sume a la tabla 'products' la columna 'unitsInStock'
+--cuando se elimina el registro en la tabla 'OrderDetails'
+--(volver como estaba antes de la insercion por ejemplo)
+ create trigger CARGAR_INVENTARIO
+ ON OrderDetails
+ for delete 
+ AS
+ update P set P.UnitsInStock= P.UnitsInStock + D.Quantity
+ from Products as P inner join deleted as D on D.ProductID = P.ProductID
+ go
+ --probar el trigger haciendo una eliminacion en 'orderDetails' 
+delete from OrderDetails where OrderID=10248 and ProductID=32
+
+--crear trigger para cuando se actualiza la tabla 'orderDetails'
+create trigger ACTUALIZAR_INVENTARIO
+ON OrderDetails
+for update
+as
+update P set P.UnitsInStock= P.UnitsInStock + D.Quantity
+from Products as P inner join deleted as D on D.ProductID = P.ProductID
+
+update P set P.UnitsInStock= P.UnitsInStock - D.Quantity
+from Products as P inner join INSERTED as D on D.ProductID = P.ProductID
+go
+--provando el trigger 'ACTUALIZAR_INVENTARIO'
+select * from Products where ProductID=32
+insert into OrderDetails(OrderID, ProductID, UnitPrice, Quantity,Discount)
+values(10248, 32, 0, 5,0)
+
+update OrderDetails set Quantity=8 where OrderID=10248 and ProductID=32
+select * from OrderDetails
+delete from OrderDetails where OrderID=10248 and ProductID=32
+select * from OrderDetails
+select * from Products
+
+
+--#############################################################################################
+--#############################################################################################
+--TRIGGER INSTEAD OF
+--Cancela la accion desencadenadora
+
+--vista dividida:
+create view catalogo
+with schemabinding
+as
+select CompanyName,ContactName,ContactTitle,Country, 'CUSTOMERS' AS [TYPE]  from dbo.Customers
+union
+select CompanyName,ContactName,ContactTitle,Country, 'SUPPLIER' AS [TYPE] from dbo.Suppliers
+
+select * from catalogo
+
+--trigger para poder insertar datos a traves de vista dividida ya que no se puede
+--porque tiene 2 tablas
+--entonces el trigger va a cancelar la accion insert y hara otro proceso 
+create trigger INSERT_CATALOGO
+ON catalogo
+instead of insert 
+as
+INSERT Customers(CustomerID, CompanyName,ContactName,ContactTitle,Country)
+select SUBSTRING(CompanyName,1,5), CompanyName,ContactName,ContactTitle,Country from inserted
+where type='CUSTOMERS'
+
+INSERT Suppliers(CompanyName,ContactName,ContactTitle,Country)
+select CompanyName,ContactName,ContactTitle,Country from inserted
+where type='SUPPLIERS'
+
+--probar funcionamiento
+insert into catalogo(CompanyName,ContactName,ContactTitle,Country,type)
+values('visoal','victor','ing','guatemala','CUSTOMERS')
+
+select * from Suppliers
+select * from Customers
+
+
+
+
+--###############################################################################################
+--TRIGGERS DDL###################################################################################
+
+--se disparan con create, alter o drop
+
+--trigger para cuando alguien modifique una tabla o la elimine
+
+create trigger proteger
+on database --se crea a nivel de la base de datos
+for drop_table, alter_table
+as
+print 'usted no puede eliminar o modificar una tabla, consulte a su administrador'
+rollback --no permite hacer la accion
+
+--probar el trigger
+drop table deletecustomers

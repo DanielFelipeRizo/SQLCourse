@@ -1,0 +1,20 @@
+--fragmentacion entre 5% y 30%
+
+alter index idx_cedula  on individuo(tabla) reorganize;
+
+--fragmentacion > 30%
+
+alter index idx_cedula  on individuo(tabla) rebuild;
+
+--reconstruir indice y dejar un espacio de 20% en la pagina nivel de hoja para nuevas inserciones
+
+alter index idx_cedula  on individuo(tabla) 
+rebuild with(fillfactor=80);
+
+--reconstruir indice y dejar un espacio de 20% en la pagina nivel de hoja y nodo
+para nuevas inserciones
+
+alter index idx_cedula  on individuo(tabla) 
+rebuild with(fillfactor=80, pad_index=on);
+
+

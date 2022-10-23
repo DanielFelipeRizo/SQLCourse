@@ -1,0 +1,4 @@
+borrar los planes de memoria de cache en el buffer
+
+DBCC FREEPROCCACHE WITH NO_INFOMSGS;
+DBCC DROPCLEANBUFFERS WITH NO_INFOMSGS;

@@ -1,0 +1,47 @@
+use Northwind
+
+sp_helpindex [Customers]
+go
+sp_helpindex Orders
+go
+
+select c.CustomerID,c.CompanyName,o.OrderID,o.OrderDate  
+from Customers as c 
+inner join 
+Orders as o on c.CustomerID=o.CustomerID
+
+--vamos a modificar el plan de ejecucion para que no use el indice actual(companyName)
+--y en su lugar use el indice closteriado pk_Customers
+select c.CustomerID,c.CompanyName,o.OrderID,o.OrderDate  
+from Customers as c with (index(PK_Customers))
+inner join 
+Orders as o on c.CustomerID=o.CustomerID
+
+--ahora vamos a cambiar el indice de la tabla Orders en el plan de ejecucion
+select c.CustomerID,c.CompanyName,o.OrderID,o.OrderDate  
+from Customers as c 
+inner join 
+Orders as o with (index(EmployeeID))
+on c.CustomerID=o.CustomerID
+
+--vamos a modificar el tipo de join(el inicial) en las dos tablas para el plan de ejecucion.
+--el merge join se hace cuando las dos columnas estan ordenadas.
+--si no esta ordenada alguna de las dos columnas las ordena y se pierde rendimiento.
+select c.CustomerID,c.CompanyName,o.OrderID,o.OrderDate  
+from Customers as c
+inner merge join 
+Orders as o on c.CustomerID=o.CustomerID
+
+--poner merge esta obsoleto, se recomienda de la siguiente manera
+select c.CustomerID,c.CompanyName,o.OrderID,o.OrderDate  
+from Customers as c
+inner join 
+Orders as o on c.CustomerID=o.CustomerID
+option (merge join)
+
+--tambien 'option' sirve para definir los indices que queremos usar
+select c.CustomerID,c.CompanyName,o.OrderID,o.OrderDate  
+from Customers as c
+inner join 
+Orders as o on c.CustomerID=o.CustomerID
+option (merge join,table hint (c, index(region)))

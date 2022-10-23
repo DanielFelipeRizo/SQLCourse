@@ -1,0 +1,4 @@
+saber la fragmentacion de una tabla y sus indices
+
+
+DBCC SHOWCONTIG (DBO.CIUDADANO, nombreIndice)

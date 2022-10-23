@@ -1,0 +1,25 @@
+use Clinic
+--encripta la columna SSN y BirthDate
+create table dbo.patients
+(
+PatientId int identity(1,1),
+[SSN] nvarchar(11) collate Latin1_General_BIN2 
+encrypted with(encryption_type=DETERMINISTIC,
+ALGORITHM='AEAD_AES_256_CBC_HMAC_SHA_256',
+COLUMN_ENCRYPTION_KEY=CEK1) NOT NULL,
+FirstName nvarchar(50) null,
+LastName nvarchar(50) null,
+MiddleName nvarchar(50) null,
+StreetAddress nvarchar(50) null,
+City nvarchar(50) null,
+ZipCode int null,
+[State] nvarchar(50) null,
+BirthDate datetime2
+encrypted with(encryption_type=RANDOMIZED,
+ALGORITHM='AEAD_AES_256_CBC_HMAC_SHA_256',
+COLUMN_ENCRYPTION_KEY=CEK1) NOT NULL,
+primary key clustered (PatientId asc) on [PRIMARY]
+)
+
+--para insertar datos en la tabla debe ser a traves de una aplicacion
+
